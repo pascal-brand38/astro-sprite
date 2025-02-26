@@ -1,3 +1,14 @@
+# Archived
+
+astro-sprite git is now archived, and this is no more the official repository.
+
+Please check
+[the official git source](https://github.com/pascal-brand38/astro-dev/tree/main/packages/astro-sprite).
+
+
+
+
+
 # astro-sprite
 
 **astro-sprite** is a npm package aimed at building a sprite from small images/icons,
