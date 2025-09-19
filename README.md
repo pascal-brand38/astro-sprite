@@ -229,3 +229,18 @@ export default defineConfig({
   ],
 });
 ```
+
+
+# Troubleshooting
+
+In case of astro not finding ```sharp``` package, you can add the
+following in ```astro.config.mjs```, as suggested by the
+[Astro Documentation](https://docs.astro.build/en/reference/errors/missing-sharp/):
+```
+import { defineConfig, passthroughImageService } from "astro/config";
+export default defineConfig({
+ image: {
+   service: passthroughImageService(),
+ },
+});
+```
