@@ -1,6 +1,6 @@
 {
   "name": "astro-sprite",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Astro Integration dedicated to Sprite Generation (png, webp, avif...)",
   "type": "module",
   "scripts": {
