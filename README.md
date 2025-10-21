@@ -233,6 +233,10 @@ export default defineConfig({
 
 # Troubleshooting
 
+## Sharp Related
+
+### passthroughImageService
+
 In case of astro not finding ```sharp``` package, you can add the
 following in ```astro.config.mjs```, as suggested by the
 [Astro Documentation](https://docs.astro.build/en/reference/errors/missing-sharp/):
@@ -244,3 +248,12 @@ export default defineConfig({
  },
 });
 ```
+
+The drawback is that images will not be resized when using astro ```Image``` or ```Picture```.
+
+
+### sharp version
+
+```astrojs``` and ```astro-sprite``` are both using sharp, and their version must be the same.
+Please [fill-in an issue in ```astro-sprite```](https://github.com/pascal-brand38/astro-sprite/issues)
+if this is not the case.
