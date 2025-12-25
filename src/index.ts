@@ -9,21 +9,59 @@ import sharp from 'sharp'
 import { fileURLToPath } from 'url'
 
 export interface spriteConfigType {
+  /** properties related to the source icons */
   src: {
+    /** directory where the single icons are located, relative to the astro srcDir
+     * @default 'assets/astro-sprite'
+     */
     dir: string,
+    /** all files in src.dir with the provided extension will be used the sprite.
+     * .webp and .avif can be used
+     * @default '.png'
+     */
     extension: string,
   },
+  /** properties related to the output of the integration */
   dst: {
+    /** the output sprite filename, relative to the astro publicDir.
+     * A .webp or .avif file can be used
+     * @default 'img/astro-sprite.png'
+     */
     spriteFile: string,
+    /** the css class that contains the property backgroud: url();
+     * @default '.astro-sprite'
+    */
     cssMainClass: string,
+    /** the output css filename, relative to the astro srcDir
+     * @default 'css/astro-sprite.css'
+    */
     cssFile: string,
+    /** each icon will be related to a css class, prefixed by this property, and
+     * suffixed by the icon file name
+     * @default '.astro-sprite-'
+    */
     cssPrefix: string,
+    /** a css selector added to each icon class, such as ::before
+     * @default ''
+    */
     cssSelector: string,
+    /** an astro component, to be use in the head section of the html, in order
+     * to preload the sprite, not waiting for the css to be loaded. Set it to undefined not
+     * to generate this file.
+     * @default 'components/SpritePreload.astro'
+     */
     preloadFile: string | undefined,
+    /** when true, add valuable rules to the cssMainClass to use sprite in span
+     * @default false
+    */
     useInSpan: boolean,
   },
+  /** verbose mode on or off
+   * @default true
+  */
   verbose: boolean,
 }
+
 
 const defaultConfig: spriteConfigType = {
   src: {
