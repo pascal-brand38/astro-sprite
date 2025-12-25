@@ -130,6 +130,9 @@ Customized properties are:
   * ```dir```: directory where the single icons are located, relative to the astro srcDir.
   * ```extension```: all files in ```src.dir``` with the provided extension will be
     used the sprite. ```.webp``` and ```.avif``` can be used
+  * ```correspondence```: instead of using all the files in ```src.dir```, only the one
+    in this array are used, along with their icon name, as an array of
+    ```{ iconName, fileName }```
 * ```dst```: properties related to the output of the integration
   * ```spriteFile```: the output sprite filename, relative to the astro publicDir
     A ```.webp``` or ```.avif``` file can be used

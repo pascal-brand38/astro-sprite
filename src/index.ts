@@ -8,65 +8,76 @@ import type { AstroConfig, AstroIntegration } from 'astro';
 import sharp from 'sharp'
 import { fileURLToPath } from 'url'
 
+// https://stackoverflow.com/questions/57835286/deep-recursive-requiredt-on-specific-properties
+// DeepRequired<spriteConfigType> makes all properties of spriteConfigType required, recursively
+type DeepRequired<T> = Required<{
+    [K in keyof T]: T[K] extends Required<T[K]> ? T[K] : DeepRequired<T[K]>
+}>
+
 export interface spriteConfigType {
   /** properties related to the source icons */
-  src: {
+  src?: {
     /** directory where the single icons are located, relative to the astro srcDir
      * @default 'assets/astro-sprite'
      */
-    dir: string,
+    dir?: string,
     /** all files in src.dir with the provided extension will be used the sprite.
-     * .webp and .avif can be used
+     * .webp and .avif can be used. It is used when correspondence is not provided.
      * @default '.png'
      */
-    extension: string,
+    extension?: string,
+    /** correspondence between icon names and file names
+     * only file names in the correspondence will be used in the sprite.
+     */
+    correspondence?: { iconName: string, fileName: string }[] | null,
   },
   /** properties related to the output of the integration */
-  dst: {
+  dst?: {
     /** the output sprite filename, relative to the astro publicDir.
      * A .webp or .avif file can be used
      * @default 'img/astro-sprite.png'
      */
-    spriteFile: string,
+    spriteFile?: string,
     /** the css class that contains the property backgroud: url();
      * @default '.astro-sprite'
     */
-    cssMainClass: string,
+    cssMainClass?: string,
     /** the output css filename, relative to the astro srcDir
      * @default 'css/astro-sprite.css'
     */
-    cssFile: string,
+    cssFile?: string,
     /** each icon will be related to a css class, prefixed by this property, and
      * suffixed by the icon file name
      * @default '.astro-sprite-'
     */
-    cssPrefix: string,
+    cssPrefix?: string,
     /** a css selector added to each icon class, such as ::before
      * @default ''
     */
-    cssSelector: string,
+    cssSelector?: string,
     /** an astro component, to be use in the head section of the html, in order
      * to preload the sprite, not waiting for the css to be loaded. Set it to undefined not
      * to generate this file.
      * @default 'components/SpritePreload.astro'
      */
-    preloadFile: string | undefined,
+    preloadFile?: string | undefined,
     /** when true, add valuable rules to the cssMainClass to use sprite in span
      * @default false
     */
-    useInSpan: boolean,
+    useInSpan?: boolean,
   },
   /** verbose mode on or off
    * @default true
   */
-  verbose: boolean,
+  verbose?: boolean,
 }
 
 
-const defaultConfig: spriteConfigType = {
+const defaultConfig: DeepRequired<spriteConfigType> = {
   src: {
     dir: 'assets/astro-sprite',
     extension: '.png',
+    correspondence: null,
   },
   dst: {
     spriteFile: 'img/astro-sprite.png',
@@ -88,24 +99,46 @@ interface iconType {
 }
 
 // read all icons data
-async function getIcons(config: spriteConfigType, srcDir: string): Promise<iconType[]> {
+async function getIcons(config: DeepRequired<spriteConfigType>, srcDir: string): Promise<iconType[]> {
   const dirIcons = path.join(srcDir, config.src.dir)
-  let maps = await Promise.all(fs.readdirSync(dirIcons).map(async (file) => {
-    const fullName = path.join(dirIcons, file);
-    if (fs.statSync(fullName).isFile() && file.endsWith(config.src.extension)) {
-      const image = sharp(fullName);
-      const metadata = await image.metadata()
-      const icon: iconType = {
-        name: path.parse(file).name,
-        fullName,
-        width: metadata.width ? metadata.width : 0,
-        height: metadata.height ? metadata.height : 0,
+  let maps: (iconType | undefined)[] | undefined = undefined
+  if (config.src.correspondence) {
+    // parse the correspondence list
+    maps = await Promise.all(config.src.correspondence.map(async (corresp) => {
+      const fullName = path.join(dirIcons, corresp.fileName);
+      if (fs.statSync(fullName).isFile()) {
+        const image = sharp(fullName);
+        const metadata = await image.metadata()
+        const icon: iconType = {
+          name: corresp.iconName,
+          fullName,
+          width: metadata.width ? metadata.width : 0,
+          height: metadata.height ? metadata.height : 0,
+        }
+        return icon
+      } else {
+        return undefined
       }
-      return icon
-    } else {
-      return undefined
-    }
-  }))
+    }))
+  } else {
+    // read all files in the directory, ending with the provided extension
+    maps = await Promise.all(fs.readdirSync(dirIcons).map(async (file) => {
+      const fullName = path.join(dirIcons, file);
+      if (fs.statSync(fullName).isFile() && file.endsWith(config.src.extension)) {
+        const image = sharp(fullName);
+        const metadata = await image.metadata()
+        const icon: iconType = {
+          name: path.parse(file).name,
+          fullName,
+          width: metadata.width ? metadata.width : 0,
+          height: metadata.height ? metadata.height : 0,
+        }
+        return icon
+      } else {
+        return undefined
+      }
+    }))
+  }
   const icons: iconType[] = maps.filter(map => map!==undefined)
   return icons
 }
@@ -146,7 +179,7 @@ function createDirOfFile(fullName: string) {
 }
 
 // write the resulting css
-function writeCss(positions: positionType[], config: spriteConfigType, srcDir: string, hash: string): string {
+function writeCss(positions: positionType[], config: DeepRequired<spriteConfigType>, srcDir: string, hash: string): string {
   let cssText = `/* Auto-generated by astro-sprite */\n`
   let spanCss = ''
   if (config.dst.useInSpan) {
@@ -165,7 +198,7 @@ function writeCss(positions: positionType[], config: spriteConfigType, srcDir: s
   return cssFile
 }
 
-async function writeSprite(positions: positionType[], config: spriteConfigType, publicDir: string): Promise<{spriteFile: string, hash: string}> {
+async function writeSprite(positions: positionType[], config: DeepRequired<spriteConfigType>, publicDir: string): Promise<{spriteFile: string, hash: string}> {
   const getHash = (buffer: Buffer) => {
     let sha = crypto.createHash('sha256')
     sha.update(buffer)
@@ -193,7 +226,7 @@ async function writeSprite(positions: positionType[], config: spriteConfigType, 
   return { spriteFile, hash }
 }
 
-function writePreload(config: spriteConfigType, srcDir: string, hash: string): string | undefined {
+function writePreload(config: DeepRequired<spriteConfigType>, srcDir: string, hash: string): string | undefined {
   if (config.dst.preloadFile) {
     let preloadText = '---\n'
     preloadText += `// Auto-generated by astro-sprite\n`
@@ -211,7 +244,7 @@ function writePreload(config: spriteConfigType, srcDir: string, hash: string): s
   }
 }
 
-async function runAstroSprite(config: spriteConfigType, srcDir: string, publicDir: string) {
+async function runAstroSprite(config: DeepRequired<spriteConfigType>, srcDir: string, publicDir: string) {
   const icons = await getIcons(config, srcDir)
   const positions = getPositions(icons)
   const { spriteFile, hash } = await writeSprite(positions, config, publicDir)
@@ -219,14 +252,9 @@ async function runAstroSprite(config: spriteConfigType, srcDir: string, publicDi
   writePreload(config, srcDir, hash)
 }
 
-// https://stackoverflow.com/questions/41980195/recursive-partialt-in-typescript
-type RecursivePartial<T> = {
-  [P in keyof T]?: RecursivePartial<T[P]>;
-};
-
 // initialize the astro sprite integration
-function sprite(config: RecursivePartial<spriteConfigType> = {}): AstroIntegration {
-  let spriteConfig:spriteConfigType = defaultConfig
+function sprite(config: spriteConfigType = {}): AstroIntegration {
+  let spriteConfig:DeepRequired<spriteConfigType> = defaultConfig
   spriteConfig.src = { ...spriteConfig.src, ...config.src}
   spriteConfig.dst = { ...spriteConfig.dst, ...config.dst}
 
